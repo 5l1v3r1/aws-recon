@@ -24,10 +24,23 @@ class CloudTrail < Mapper
         struct.status = client.get_trail_status({ name: trail.name }).to_h
         struct.arn = trail.trail_arn
 
+      rescue Aws::CloudTrail::Errors::ServiceError => e
+        log_error(e.code)
+        raise e unless suppressed_errors.include?(e.code)
+      ensure
         resources.push(struct.to_h)
       end
     end
 
     resources
+  end
+
+  private
+
+  # not an error
+  def suppressed_errors
+    %w[
+      CloudTrailARNInvalidException
+    ]
   end
 end
